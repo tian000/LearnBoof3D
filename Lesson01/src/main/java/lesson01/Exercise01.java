@@ -1,4 +1,4 @@
-package org.boofcv;
+package lesson01;
 
 
 import boofcv.gui.feature.VisualizeFeatures;
@@ -22,10 +22,7 @@ public class Exercise01 {
         Random rand = new Random(234);
 
         // let's start by creating a random point cloud in front of the camera
-        List<Point3D_F64> cloud = UtilPoint3D_F64.random(-1,1,100,rand);
-        for( Point3D_F64 p : cloud ) { // TODO Update on next release into 1 line of code
-            p.z += CLOUD_DEPTH;
-        }
+        List<Point3D_F64> cloud = UtilPoint3D_F64.random(new Point3D_F64(0,0,CLOUD_DEPTH),-1,1,100,rand);
 
         // This defines our pinhole camera
         CameraPinhole intrinsic = new CameraPinhole(250,250,0,300,300,600,600);
@@ -66,5 +63,9 @@ public class Exercise01 {
         // 2) Add skew to the camera model. What happens?
         // 3) What happens if you put the cloud behind the camera? Why is that?
         // 4) See if you can change CameraPinhole so that the image is 900x900 pixels but everything is rendered in the same relative location
+        //    Let's say a point appears at (x,y) it's relative location will be (x/600,y/600).
+        //    The goal of this problem is to find the camera model so that (x/900,y/900) gives the same solution for
+        //    all points.
+        //    Write your solution inside of YourCode01 and test it using the unit test in TestYourCode01
     }
 }

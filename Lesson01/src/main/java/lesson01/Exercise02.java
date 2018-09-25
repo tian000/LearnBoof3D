@@ -1,4 +1,4 @@
-package org.boofcv;
+package lesson01;
 
 import boofcv.alg.geo.PerspectiveOps;
 import boofcv.gui.feature.VisualizeFeatures;
@@ -30,15 +30,12 @@ public class Exercise02 {
         Random rand = new Random(234);
 
         // let's start by creating a random point cloud in front of the camera
-        List<Point3D_F64> cloud = UtilPoint3D_F64.random(-1,1,100,rand);
-        for( Point3D_F64 p : cloud ) { // TODO Update on next release into 1 line of code
-            p.z += 2;
-        }
+        List<Point3D_F64> cloud = UtilPoint3D_F64.random(new Point3D_F64(0,0,2),-1,1,100,rand);
 
         // This defines our pinhole camera
         CameraPinhole intrinsic = new CameraPinhole(250,250,0,300,300,600,600);
         // Convert the object into a 3x3 calibration matrix
-        DMatrixRMaj K = PerspectiveOps.calibrationMatrix(intrinsic,(DMatrixRMaj)null);
+        DMatrixRMaj K = PerspectiveOps.pinholeToMatrix(intrinsic,(DMatrixRMaj)null);
 
         // Create an image to render our scene into
         BufferedImage image = new BufferedImage(intrinsic.width,intrinsic.height, BufferedImage.TYPE_INT_RGB);
@@ -104,5 +101,6 @@ public class Exercise02 {
         // 3) Make the camera rotating around the points with a fixed radius. There are a bunch of ways to do this
         //    if you wish to combine two rigid body transforms then Se3_F64.concat() could be useful. There might
         //    be easier ways.
+        //    Fixed radius means ||T - (0,0,2)'|| is contant
     }
 }

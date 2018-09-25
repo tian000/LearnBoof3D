@@ -1,4 +1,4 @@
-package org.boofcv;
+package lesson01;
 
 import boofcv.alg.geo.PerspectiveOps;
 import boofcv.gui.feature.VisualizeFeatures;
@@ -25,10 +25,7 @@ public class Exercise03 {
         Random rand = new Random(234);
 
         // let's start by creating a random point cloud in front of the camera
-        List<Point3D_F64> cloud = UtilPoint3D_F64.random(-1,1,400,rand);
-        for( Point3D_F64 p : cloud ) { // TODO Update on next release into 1 line of code
-            p.z += 1.25;
-        }
+        List<Point3D_F64> cloud = UtilPoint3D_F64.random(new Point3D_F64(0,0,1.25),-1,1,400,rand);
 
         // Specify the camera model for our synthetic camera
         CameraPinholeRadial intrinsic = new CameraPinholeRadial()
@@ -38,7 +35,7 @@ public class Exercise03 {
                 .fsetRadial(0.1,0.05);
 
         // Create camera calibration matrix
-        DMatrixRMaj K = PerspectiveOps.calibrationMatrix(intrinsic,(DMatrixRMaj)null);
+        DMatrixRMaj K = PerspectiveOps.pinholeToMatrix(intrinsic,(DMatrixRMaj)null);
 
         // Real cameras have lens distortion which ruin our nice simple (and linear) pinhole camera
         // model. There are a lot of models for lens distortion. Here we will just examine radial distortion
@@ -53,7 +50,8 @@ public class Exercise03 {
         Graphics2D g2 = image.createGraphics();
         // workspace variables
         Point2D_F64 norm = new Point2D_F64();   // storage for normalized image coordinate
-        Point2D_F64 pixel = new Point2D_F64();  // storage for pixel coordinate
+        Point2D_F64 pixel0 = new Point2D_F64();  // storage for pixel coordinate
+        Point2D_F64 pixel1 = new Point2D_F64();
 
         for( Point3D_F64 p : cloud ) {
             // To simplify the code we will once again assume R = eye(3) and T = (0,0,0)'
@@ -64,11 +62,11 @@ public class Exercise03 {
             // z = 1 is implicit now
 
             // Render undistorted pixel
-            GeometryMath_F64.mult(K,norm,pixel);
+            GeometryMath_F64.mult(K,norm,pixel0);
 
             // Draw it's location in Green
             g2.setColor(Color.GREEN);
-            VisualizeFeatures.drawCircle(g2,pixel.x,pixel.y,4);
+            VisualizeFeatures.drawCircle(g2,pixel0.x,pixel0.y,4);
 
             // Now let's find the location after radial distortion has applied
             // Lens distortion is applied to the normalized image coordinate and not directly to the pixel coordinates
@@ -85,11 +83,12 @@ public class Exercise03 {
             norm.y = norm.y*( 1 + sum );
 
             // Render undistorted pixel
-            GeometryMath_F64.mult(K,norm,pixel);
+            GeometryMath_F64.mult(K,norm,pixel1);
 
-            // Draw it in read
+            // Draw it in red
             g2.setColor(Color.RED);
-            VisualizeFeatures.drawCircle(g2,pixel.x,pixel.y,4);
+            g2.drawLine((int)pixel0.x,(int)pixel0.y,(int)pixel1.x,(int)pixel1.y);
+            VisualizeFeatures.drawCircle(g2,pixel1.x,pixel1.y,4);
         }
 
         // Show the rendered image and exit when the window is closed
