@@ -57,10 +57,10 @@ public class Exercise02 {
         Estimate1ofPnP pnp = FactoryMultiView.pnp_1(EnumPNP.EPNP,10,0);
 
         Se3_F64 foundMarkerToCamera = new Se3_F64();
-        if( !pnp.process(landmarks,markerToCamera) )
+        if( !pnp.process(landmarks,foundMarkerToCamera) )
             throw new RuntimeException("Problem!");
 
-        System.out.println("Pixel Reprojection Error = "+ averagePixelError(foundMarkerToCamera,intrinsic,landmarks));
+        System.out.println("Pixel Reprojection Error = " + averagePixelError(foundMarkerToCamera,intrinsic,landmarks));
 
         // That error is much better! 1e-12
         //

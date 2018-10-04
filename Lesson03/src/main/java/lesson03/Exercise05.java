@@ -15,6 +15,8 @@ import georegression.struct.se.Se3_F64;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.HashMap;
+import java.util.Map;
 
 import static lesson03.BoilderPlate03.checkSolution;
 import static org.boofcv.GenerateSimulatedMarkers.loadImage;
@@ -27,12 +29,14 @@ import static org.boofcv.GenerateSimulatedMarkers.loadImage;
  * @author Peter Abeles
  */
 public class Exercise05 {
+
+
     public static void main(String[] args) {
 
         //-------------------------------------------------------------
         // Define the camera model
-        CameraPinholeRadial pinhole =  new CameraPinholeRadial(250,250,0,320,240,640,480)
-                .fsetRadial(-0.05,0.001);
+        CameraPinholeRadial pinhole = new CameraPinholeRadial(250, 250, 0, 320, 240, 640, 480)
+                .fsetRadial(-0.05, 0.001);
         LensDistortionRadialTangential distortion = new LensDistortionRadialTangential(pinhole);
 
         //-------------------------------------------------------------
@@ -41,31 +45,46 @@ public class Exercise05 {
         double markerLength = 0.2;
 
         SquareImage_to_FiducialDetector<GrayF32> detector =
-                FactoryFiducial.squareImage(config,null, GrayF32.class);
+                FactoryFiducial.squareImage(config, null, GrayF32.class);
 
-        detector.setLensDistortion(distortion,pinhole.width,pinhole.height);
+        detector.setLensDistortion(distortion, pinhole.width, pinhole.height);
 
-        detector.addPatternImage(loadImage("dog"),125, markerLength);
-        detector.addPatternImage(loadImage("h2o"),125, markerLength);
-        detector.addPatternImage(loadImage("ke"),125, markerLength);
+        detector.addPatternImage(loadImage("dog"), 125, markerLength);
+        detector.addPatternImage(loadImage("h2o"), 125, markerLength);
+        detector.addPatternImage(loadImage("ke"), 125, markerLength);
 
         //-------------------------------------------------------------
         // Visualization
-        BufferedImage buffered = new BufferedImage(pinhole.width,pinhole.height,BufferedImage.TYPE_INT_RGB);
-        ImagePanel gui = ShowImages.showWindow(buffered,"Fiducial Sequence",true);
+        BufferedImage buffered = new BufferedImage(pinhole.width, pinhole.height, BufferedImage.TYPE_INT_RGB);
+        ImagePanel gui = ShowImages.showWindow(buffered, "Fiducial Sequence", true);
+
+        Map<Integer, Se3_F64> markerToCamera0 = new HashMap<>();
+
+        boolean seenMarker = false;
 
         for (int frame = 0; frame < 105; frame++) {
-            System.out.println("------------------ Frame="+frame);
+            System.out.println("------------------ Frame=" + frame);
 
-            GrayF32 image = BoilderPlate03.renderViewInSequence(markerLength,pinhole,frame);
+            GrayF32 image = BoilderPlate03.renderViewInSequence(markerLength, pinhole, frame);
 
             detector.detect(image);
 
             System.out.print("detected:");
             for (int i = 0; i < detector.totalFound(); i++) {
-                System.out.print(" "+detector.getId(i));
+                System.out.print(" " + detector.getId(i));
             }
             System.out.println();
+
+            if (!seenMarker && detector.totalFound() > 0) {
+                for (int id = 0; id < detector.totalFound(); id++) {
+                    Se3_F64 fiducialToCamera = new Se3_F64();
+                    boolean isSuccess = detector.getFiducialToCamera(id, fiducialToCamera);
+                    if (isSuccess) {
+                        markerToCamera0.put(id, fiducialToCamera);
+                    }
+                }
+                seenMarker = true;
+            }
 
             // TODO your code codes here. The objective is to correctly estimate the camera's pose relative
             // Start by running this class and looking at the image sequence. There will be some book keeping
@@ -79,20 +98,51 @@ public class Exercise05 {
             // Storage for your found transform from the camera's location at frame 0 to the current frame
             Se3_F64 camera0_to_frameN = new Se3_F64();
 
+
+            if (!seenMarker && detector.totalFound() > 0) {
+                for (int id = 0; id < detector.totalFound(); id++) {
+                    Se3_F64 fiducialToCamera = new Se3_F64();
+                    boolean isSuccess = detector.getFiducialToCamera(id, fiducialToCamera);
+                    if (isSuccess) {
+                        markerToCamera0.put(id, fiducialToCamera);
+                    }
+                }
+                seenMarker = true;
+            } else if (seenMarker && detector.totalFound() > 0) {
+
+                int knownMarker = -1;
+                Se3_F64 curCameraToKnownMarker = new Se3_F64();
+                for (int id = 0; id < detector.totalFound(); id++) {
+                    Se3_F64 fiducialToCamera = new Se3_F64();
+                    boolean isSuccess = detector.getFiducialToCamera(id, fiducialToCamera);
+                    if (isSuccess && markerToCamera0.containsKey(id)) {
+                        Se3_F64 cameraToFiducial = fiducialToCamera.invert(null);
+                        camera0_to_frameN = cameraToFiducial.concat(markerToCamera0.get(id), null); // This is actually camera n-> 0
+                        camera0_to_frameN.invert(camera0_to_frameN);
+                        knownMarker = id;
+                        curCameraToKnownMarker = cameraToFiducial;
+                    } else if (isSuccess && !markerToCamera0.containsKey(id) && knownMarker != -1) {
+                        markerToCamera0.put(id, fiducialToCamera.concat(curCameraToKnownMarker, null)
+                                                                    .concat(markerToCamera0.get(knownMarker), null));
+                    }
+                }
+            }
+
+
             // This will check your solution against ground truth. if it finds a problem it will print an error
             // message to standard out
             checkSolution(camera0_to_frameN, frame);
 
             // Draw some visuals on top of the image. This should build confidence that the detector is correctly
             // estimating the transforms.
-            ConvertBufferedImage.convertTo(image,buffered,true);
+            ConvertBufferedImage.convertTo(image, buffered, true);
             Graphics2D g2 = buffered.createGraphics();
             for (int i = 0; i < detector.totalFound(); i++) {
                 Se3_F64 fiducialToCamera = new Se3_F64();
-                detector.getFiducialToCamera(i,fiducialToCamera);
-                VisualizeFiducial.drawLabelCenter(fiducialToCamera,pinhole,""+detector.getId(i),g2);
-                VisualizeFiducial.drawCube(fiducialToCamera,pinhole,markerLength,5,g2);
-                System.out.print(" "+detector.getId(i));
+                detector.getFiducialToCamera(i, fiducialToCamera);
+                VisualizeFiducial.drawLabelCenter(fiducialToCamera, pinhole, "" + detector.getId(i), g2);
+                VisualizeFiducial.drawCube(fiducialToCamera, pinhole, markerLength, 5, g2);
+                System.out.print(" " + detector.getId(i));
             }
             gui.repaint();
             BoofMiscOps.sleep(50);

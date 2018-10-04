@@ -19,6 +19,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.List;
 import java.util.Random;
+import java.lang.Math;
 
 /**
  * Adding rigid body transform to the camera.
@@ -47,6 +48,7 @@ public class Exercise02 {
         Point3D_F64 cameraX = new Point3D_F64();
         Point2D_F64 pixel = new Point2D_F64();
 
+        double x = 0;
         // Render a scene with a moving camera
         for (int step = 0; step < 1000; step++) {
             // As a reminder the full camera model look like x' = K*[R|T]*X
@@ -56,8 +58,10 @@ public class Exercise02 {
             // First we need to define where the camera is.
             // The code below will apply no rotation (you will change this later on) but will have the camera
             // moving towards the points
-            ConvertRotation3D_F64.eulerToMatrix(EulerType.XYZ, 0,0,0,worldToCamera.R);
-            worldToCamera.T.z -= 0.02;
+
+            x = (x+(2*Math.PI)/1000);
+            ConvertRotation3D_F64.eulerToMatrix(EulerType.XYZ, 0, 0, x,worldToCamera.R);
+//            worldToCamera.T.z -= 0.02;
             // Notice how there is a negative sign but I said it was moving forward? This transform is world to camera
             // If a point was at say Z it will now be at Z-0.02, which is closer to the camera in its reference frame
 

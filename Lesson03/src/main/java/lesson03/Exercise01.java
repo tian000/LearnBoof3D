@@ -1,12 +1,14 @@
 package lesson03;
 
 import boofcv.abst.geo.Estimate1ofPnP;
+import boofcv.alg.geo.PerspectiveOps;
 import boofcv.alg.geo.WorldToCameraToPixel;
 import boofcv.factory.geo.EnumPNP;
 import boofcv.factory.geo.FactoryMultiView;
 import boofcv.struct.calib.CameraPinhole;
 import boofcv.struct.geo.Point2D3D;
 import georegression.struct.point.Point2D_F64;
+import georegression.struct.point.Point3D_F64;
 import georegression.struct.se.Se3_F64;
 import georegression.struct.se.SpecialEuclideanOps_F64;
 
@@ -43,7 +45,9 @@ public class Exercise01 {
 
         // Render pixel observations. Remember that PNP works by having observations with known 3D locations
         for (int i = 0; i < landmarks.size(); i++) {
-            w2p.transform(landmarks.get(i).location,landmarks.get(i).observation);
+            Point3D_F64 camera_point = markerToCamera.transform(landmarks.get(i).location, null);
+            landmarks.get(i).observation.setX(camera_point.x/camera_point.z);
+            landmarks.get(i).observation.setY(camera_point.y/camera_point.z);
         }
 
         //------------------- ESTIMATING CAMERA POSE ---------------------------
@@ -56,9 +60,10 @@ public class Exercise01 {
         if( !pnp.process(landmarks,found) )
             throw new RuntimeException("Problem!");
 
+
+
         // Perfect observations and so I was able to perfectly reconstruct the camera location relative to the
         // marker's frame!  Test by looking at reprojection error
-
 
         System.out.println("Error = "+averageError(found,intrinsic,landmarks));
 
@@ -93,7 +98,7 @@ public class Exercise01 {
         double error = 0;
         for (int i = 0; i < landmarks.size(); i++) {
             w2p.transform(landmarks.get(i).location,pixels);
-            error += pixels.distance(landmarks.get(i).observation);
+            error += pixels.distance(PerspectiveOps.convertNormToPixel(intrinsic, landmarks.get(i).observation, null));
         }
 
         return error/landmarks.size();
