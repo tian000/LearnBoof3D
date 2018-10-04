@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static lesson03.BoilderPlate03.checkSolution;
-import static org.boofcv.GenerateSimulatedMarkers.loadImage;
+import static org.boofcv.GenerateSimulatedMarkers.loadPattern;
 
 /**
  * Given a sequence of observations from multiple markers determine the final camera pose. There are
@@ -49,9 +49,9 @@ public class Exercise05 {
 
         detector.setLensDistortion(distortion, pinhole.width, pinhole.height);
 
-        detector.addPatternImage(loadImage("dog"), 125, markerLength);
-        detector.addPatternImage(loadImage("h2o"), 125, markerLength);
-        detector.addPatternImage(loadImage("ke"), 125, markerLength);
+        detector.addPatternImage(loadPattern("dog"),125, markerLength);
+        detector.addPatternImage(loadPattern("h2o"),125, markerLength);
+        detector.addPatternImage(loadPattern("ke"),125, markerLength);
 
         //-------------------------------------------------------------
         // Visualization
@@ -139,10 +139,9 @@ public class Exercise05 {
             Graphics2D g2 = buffered.createGraphics();
             for (int i = 0; i < detector.totalFound(); i++) {
                 Se3_F64 fiducialToCamera = new Se3_F64();
-                detector.getFiducialToCamera(i, fiducialToCamera);
-                VisualizeFiducial.drawLabelCenter(fiducialToCamera, pinhole, "" + detector.getId(i), g2);
-                VisualizeFiducial.drawCube(fiducialToCamera, pinhole, markerLength, 5, g2);
-                System.out.print(" " + detector.getId(i));
+                detector.getFiducialToCamera(i,fiducialToCamera);
+                VisualizeFiducial.drawLabelCenter(fiducialToCamera,pinhole,""+detector.getId(i),g2);
+                VisualizeFiducial.drawCube(fiducialToCamera,pinhole,markerLength,5,g2);
             }
             gui.repaint();
             BoofMiscOps.sleep(50);
